@@ -2,13 +2,11 @@ name: Temporary bridge
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 0,4,8,12,16,20 * * *'
 
 permissions:
   contents: write
-
-concurrency:
-  group: temporary-bridge
-  cancel-in-progress: true
 
 jobs:
   bridge:
