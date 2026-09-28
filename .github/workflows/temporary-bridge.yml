@@ -92,8 +92,17 @@ jobs:
           content=$(jq -nc --arg bridge_url "$bridge_url" --argjson run_id "$GH_RUN_ID" \
             '{bridge_url:$bridge_url,run_id:$run_id}' | base64 -w 0)
           endpoint="https://api.github.com/repos/$GH_REPOSITORY/contents/status/current.json"
-          sha=$(curl --silent --show-error -H "Authorization: Bearer $GH_STATUS_TOKEN" \
-            -H 'Accept: application/vnd.github+json' "$endpoint" | jq -r '.sha // empty')
+          existing=$(curl --silent --show-error -H "Authorization: Bearer $GH_STATUS_TOKEN" \
+            -H 'Accept: application/vnd.github+json' "$endpoint")
+          sha=$(jq -r '.sha // empty' <<< "$existing")
+          encoded=$(jq -r '.content // empty' <<< "$existing")
+          if [ -n "$encoded" ]; then
+            previous_run=$(printf '%s' "$encoded" | base64 --decode | jq -r '.run_id // 0' || echo 0)
+            if [[ "$previous_run" =~ ^[0-9]+$ ]] && (( previous_run > GH_RUN_ID )); then
+              echo 'A newer run already published its address.'
+              exit 0
+            fi
+          fi
           payload=$(jq -nc --arg content "$content" --arg sha "$sha" \
             '{message:"Update temporary bridge address",content:$content} + (if $sha == "" then {} else {sha:$sha} end)')
           curl --fail --silent --show-error -X PUT -H "Authorization: Bearer $GH_STATUS_TOKEN" \
