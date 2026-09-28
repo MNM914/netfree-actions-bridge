@@ -4,7 +4,7 @@ This public repository contains only the HTTP/JSON bridge server and a manually 
 
 The owner must configure the repository Actions secret `BRIDGE_KEY` before running the workflow. The key must be at least 16 characters and match the local client's encrypted vault. Never supply a key as a workflow input or commit it to this repository.
 
-Run **Actions → Temporary bridge → Run workflow**. After the "Start authenticated bridge" step completes, the URL appears in that step's log and in the run summary. It is never committed to the repository. Configure the local client to use the URL ending in `/api/bridge`. The URL changes each run. The workflow ends after at most 350 minutes, and the URL ceases to work. Re-run it and update the local URL for another session.
+Run **Actions → Temporary bridge → Run workflow**. After the "Start authenticated bridge" step completes, the URL appears in that step's log, run summary, and a one-day `bridge-url` artifact. It is never committed to the repository. Configure the local client to use the URL ending in `/api/bridge`. The URL changes each run. The workflow ends after at most 350 minutes, and the URL ceases to work. Re-run it and update the local URL for another session.
 
 The local client requires HTTPS, checks the certificate, and fails closed if the bridge is unavailable. The bridge requires the key for all `/api/bridge` requests, permits only ports 80/443 and public IPv4 destinations, and listens only on the runner's loopback interface. The public `/healthz` endpoint reveals only a boolean.
 
