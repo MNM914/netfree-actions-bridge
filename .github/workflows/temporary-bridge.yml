@@ -72,10 +72,17 @@ jobs:
             exit 1
           fi
           printf '%s %s\n' "$server_pid" "$tunnel_pid" > "$RUNNER_TEMP/bridge-pids"
+          printf '%s\n' "$tunnel_url/api/bridge" > "$RUNNER_TEMP/bridge-url.txt"
           echo "Bridge URL: $tunnel_url/api/bridge"
           echo "::notice title=Temporary bridge URL::$tunnel_url/api/bridge"
           echo "Bridge URL: $tunnel_url/api/bridge" >> "$GITHUB_STEP_SUMMARY"
           echo 'The URL is temporary. The key is never printed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish URL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-url
+          path: ${{ runner.temp }}/bridge-url.txt
+          retention-days: 1
       - name: Keep bridge online
         run: |
           set -euo pipefail
