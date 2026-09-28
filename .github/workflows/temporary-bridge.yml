@@ -58,7 +58,16 @@ jobs:
             sleep 2
           done
           if [ -z "$tunnel_url" ]; then echo 'Tunnel URL was not issued.' >&2; exit 1; fi
-          if ! curl --fail --silent --retry 6 --retry-delay 2 "$tunnel_url/healthz" > /dev/null; then
+          tunnel_ready=false
+          for i in $(seq 1 60); do
+            if curl --fail --silent --max-time 8 "$tunnel_url/healthz" > /dev/null; then
+              tunnel_ready=true
+              break
+            fi
+            if ! kill -0 "$tunnel_pid" 2>/dev/null; then break; fi
+            sleep 2
+          done
+          if [ "$tunnel_ready" != true ]; then
             echo 'Public tunnel health check failed.' >&2
             exit 1
           fi
