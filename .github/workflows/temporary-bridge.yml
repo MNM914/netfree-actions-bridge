@@ -64,6 +64,7 @@ jobs:
           fi
           printf '%s %s\n' "$server_pid" "$tunnel_pid" > "$RUNNER_TEMP/bridge-pids"
           echo "Bridge URL: $tunnel_url/api/bridge"
+          echo "::notice title=Temporary bridge URL::$tunnel_url/api/bridge"
           echo "Bridge URL: $tunnel_url/api/bridge" >> "$GITHUB_STEP_SUMMARY"
           echo 'The URL is temporary. The key is never printed.' >> "$GITHUB_STEP_SUMMARY"
       - name: Keep bridge online
