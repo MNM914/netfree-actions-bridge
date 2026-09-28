@@ -28,7 +28,7 @@ jobs:
             https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
           sudo dpkg -i cloudflared.deb
           cloudflared --version
-      - name: Run authenticated bridge
+      - name: Start authenticated bridge
         env:
           BRIDGE_KEY: ${{ secrets.BRIDGE_KEY }}
           BIND_HOST: 127.0.0.1
@@ -39,16 +39,16 @@ jobs:
             echo 'Repository BRIDGE_KEY secret is missing or too short.' >&2
             exit 1
           fi
-          node standalone-server.mjs > bridge.log 2>&1 &
+          nohup node standalone-server.mjs > bridge.log 2>&1 < /dev/null &
           server_pid=$!
           unset BRIDGE_KEY
-          trap 'kill ${tunnel_pid:-} "$server_pid" 2>/dev/null || true' EXIT
+          trap 'kill ${tunnel_pid:-} "$server_pid" 2>/dev/null || true' ERR
           for i in $(seq 1 30); do
             if curl --fail --silent http://127.0.0.1:8080/healthz > /dev/null; then break; fi
             if ! kill -0 "$server_pid" 2>/dev/null; then echo 'Bridge stopped.' >&2; exit 1; fi
             sleep 1
           done
-          cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8080 > tunnel.log 2>&1 &
+          nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8080 > tunnel.log 2>&1 < /dev/null &
           tunnel_pid=$!
           tunnel_url=''
           for i in $(seq 1 90); do
@@ -62,9 +62,16 @@ jobs:
             echo 'Public tunnel health check failed.' >&2
             exit 1
           fi
+          printf '%s %s\n' "$server_pid" "$tunnel_pid" > "$RUNNER_TEMP/bridge-pids"
           echo "Bridge URL: $tunnel_url/api/bridge"
           echo "Bridge URL: $tunnel_url/api/bridge" >> "$GITHUB_STEP_SUMMARY"
           echo 'The URL is temporary. The key is never printed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep bridge online
+        run: |
+          set -euo pipefail
+          read -r server_pid tunnel_pid < "$RUNNER_TEMP/bridge-pids"
+          trap 'kill "$tunnel_pid" "$server_pid" 2>/dev/null || true' EXIT
           while kill -0 "$server_pid" 2>/dev/null && kill -0 "$tunnel_pid" 2>/dev/null; do sleep 5; done
           echo 'Bridge or tunnel stopped.' >&2
           exit 1
+
