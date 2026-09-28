@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: temporary-bridge
@@ -83,6 +83,24 @@ jobs:
           name: bridge-url
           path: ${{ runner.temp }}/bridge-url.txt
           retention-days: 1
+      - name: Publish public current address
+        env:
+          GH_STATUS_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          GH_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          bridge_url=$(cat "$RUNNER_TEMP/bridge-url.txt")
+          content=$(jq -nc --arg bridge_url "$bridge_url" --argjson run_id "$GH_RUN_ID" \
+            '{bridge_url:$bridge_url,run_id:$run_id}' | base64 -w 0)
+          endpoint="https://api.github.com/repos/$GH_REPOSITORY/contents/status/current.json"
+          sha=$(curl --silent --show-error -H "Authorization: Bearer $GH_STATUS_TOKEN" \
+            -H 'Accept: application/vnd.github+json' "$endpoint" | jq -r '.sha // empty')
+          payload=$(jq -nc --arg content "$content" --arg sha "$sha" \
+            '{message:"Update temporary bridge address",content:$content} + (if $sha == "" then {} else {sha:$sha} end)')
+          curl --fail --silent --show-error -X PUT -H "Authorization: Bearer $GH_STATUS_TOKEN" \
+            -H 'Accept: application/vnd.github+json' -H 'Content-Type: application/json' \
+            --data "$payload" "$endpoint" > /dev/null
       - name: Keep bridge online
         run: |
           set -euo pipefail
