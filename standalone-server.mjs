@@ -114,8 +114,8 @@ export function createStandaloneBridge({ secret, dial = connectPublic, maxSessio
         });
         if (res.destroyed) return;
         const chunks=[];let length=0;
-        while (session.queue.length && length < 256000) {
-          const first=session.queue[0], count=Math.min(first.length,256000-length);
+        while (session.queue.length && length < 480000) {
+          const first=session.queue[0], count=Math.min(first.length,480000-length);
           chunks.push(first.subarray(0,count));length+=count;
           if (count===first.length) session.queue.shift(); else session.queue[0]=first.subarray(count);
         }
@@ -140,3 +140,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   server.listen(Number(process.env.PORT || 8080), process.env.BIND_HOST || '0.0.0.0');
   process.on('SIGTERM',stop);process.on('SIGINT',stop);
 }
+
