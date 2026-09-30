@@ -110,7 +110,7 @@ export function createStandaloneBridge({ secret, dial = connectPublic, maxSessio
         if (session.delivery) { reply(res,session.delivery); return; }
         if (!session.size && !session.closed) await new Promise(resolve => {
           const wake=()=>{clearTimeout(timer); session.wake=null;res.off('close',wake);resolve();};
-          const timer=setTimeout(wake,10000);session.wake=wake;res.once('close',wake);
+          const timer=setTimeout(wake,40000);session.wake=wake;res.once('close',wake);
         });
         if (res.destroyed) return;
         const chunks=[];let length=0;

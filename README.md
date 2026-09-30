@@ -4,7 +4,7 @@ This public repository contains only the HTTP/JSON bridge server and a manually 
 
 The owner must configure the repository Actions secret `BRIDGE_KEY` before running the workflow. The key must be at least 16 characters and match the local client's encrypted vault. Never supply a key as a workflow input or commit it to this repository.
 
-Run **Actions → Temporary bridge → Run workflow**. Once the tunnel is ready, the workflow publishes `status/current.json` with only the temporary URL and run ID. The local client reads this public file, confirms through GitHub's API that the specified workflow run is still active, then sends an authenticated health request before changing its configuration. No GitHub token or pasted address is needed on the client. The URL also appears in the run summary and artifact. The workflow ends after at most 350 minutes; start a new run for another session. An old status file is ignored when its run is no longer active.
+Run **Actions → Temporary bridge → Run workflow**. Once the tunnel is ready, the workflow publishes `status/current.json` with the temporary URL and run ID, plus the previous run during an overlapping handoff. The local client reads this public file, confirms through GitHub's API that the specified workflow run is still active, then sends an authenticated health request before changing its configuration. No GitHub token or pasted address is needed on the client. The URL also appears in the run summary and artifact. The workflow ends after at most 350 minutes; start a new run for another session. An old status file is ignored when its run is no longer active.
 
 The workflow also starts on a UTC schedule every four hours at minute 17. Runs can overlap; the previous runner stays online until its own 350-minute timeout while the newer runner publishes its address. The client checks for a newer active run every five minutes and routes new connections to it without restarting the local proxy. Connections already open on the old runner stay there and may be interrupted when that runner exits. GitHub may delay or drop scheduled runs, and schedules in inactive public repositories can be disabled after 60 days, so this is not an uptime guarantee. A manual **Run workflow** remains available.
 
@@ -14,3 +14,7 @@ The local client requires HTTPS, checks the certificate, and fails closed if the
 
 There is no assertion here that a Quick Tunnel is reachable through NetFree. That must be tested on NetFree itself. Cloudflare says Quick Tunnels are intended for testing, have no uptime guarantee, and currently allow up to 200 concurrent in-flight requests.
 
+
+## Filtered-network client handoff
+
+The public status file includes the current temporary URL and may include the previous run during an overlap. Neither entry contains a bridge key. A client on a network that blocks direct Quick Tunnel addresses can use an authenticated relay on a separately approved, already accessible endpoint. The private client validates the active run via the GitHub API and pins existing connections to their original run while new connections move to the latest run. This repository does not contain the relay key or private client vault.
